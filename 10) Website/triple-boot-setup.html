@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Triple Boot Setup — Ryan McHenry</title>
+  <style>
+    /* ── Tokens ─────────────────────────────────────────────── */
+    :root {
+      --black:   #0A0A0A;
+      --surface: #111111;
+      --card:    #161616;
+      --border:  #222222;
+      --gold:    #56ccff;
+      --gold-lt: #93C5FD;
+      --gold-dk: #1e738a;
+      --white:   #F0EFEB;
+      --muted:   #888888;
+      --font-display: 'Georgia', 'Times New Roman', serif;
+      --font-body:    'Helvetica Neue', Helvetica, Arial, sans-serif;
+      --nav-h: 64px;
+      --max-w: 1100px;
+      --radius: 4px;
+    }
+
+    /* ── Reset ──────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--black);
+      color: var(--white);
+      font-family: var(--font-body);
+      font-size: 15px;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--gold); text-decoration: none; transition: color .2s; }
+    a:hover { color: var(--gold-lt); }
+    img { display: block; max-width: 100%; }
+
+    /* ── Nav ────────────────────────────────────────────────── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: var(--nav-h);
+      background: rgba(10,10,10,.93);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 40px;
+    }
+    .nav-logo {
+      font-family: var(--font-display);
+      font-size: 18px;
+      letter-spacing: .06em;
+      color: var(--gold);
+    }
+    .nav-links {
+      display: flex;
+      gap: 36px;
+      list-style: none;
+    }
+    .nav-links a {
+      font-size: 12px;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: var(--muted);
+      transition: color .2s;
+    }
+    .nav-links a:hover { color: var(--gold); }
+
+    /* ── Layout helpers ─────────────────────────────────────── */
+    .container {
+      max-width: var(--max-w);
+      margin: 0 auto;
+      padding: 0 40px;
+    }
+    section { padding: 96px 0; }
+    section + section { border-top: 1px solid var(--border); }
+
+    .eyebrow {
+      display: block;
+      font-size: 10px;
+      letter-spacing: .22em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 10px;
+    }
+    .section-title {
+      font-family: var(--font-display);
+      font-size: clamp(28px, 4vw, 40px);
+      font-weight: normal;
+      color: var(--white);
+      margin-bottom: 48px;
+      line-height: 1.2;
+    }
+    .section-title em {
+      font-style: italic;
+      color: var(--gold);
+    }
+    .divider {
+      width: 48px;
+      height: 1px;
+      background: var(--gold);
+      margin-bottom: 40px;
+    }
+
+    /* ── Back link ──────────────────────────────────────────── */
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .back-link:hover { color: var(--gold); }
+
+    /* ── Hero ───────────────────────────────────────────────── */
+    #hero {
+      padding-top: calc(var(--nav-h) + 80px);
+      padding-bottom: 80px;
+    }
+    .project-eyebrow-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .hero-title {
+      font-family: var(--font-display);
+      font-size: clamp(36px, 6vw, 60px);
+      font-weight: normal;
+      line-height: 1.1;
+      color: var(--white);
+      margin-bottom: 20px;
+    }
+    .hero-title em { font-style: italic; color: var(--gold); }
+    .hero-sub {
+      font-size: 15px;
+      color: var(--muted);
+      max-width: 620px;
+      line-height: 1.8;
+      margin-bottom: 32px;
+    }
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 28px;
+      padding-top: 28px;
+      border-top: 1px solid var(--border);
+      margin-bottom: 32px;
+    }
+    .meta-item .meta-label {
+      font-size: 10px;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .meta-item .meta-value {
+      font-family: var(--font-display);
+      font-size: 16px;
+      color: var(--white);
+    }
+    .tech-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+    .tech-tag {
+      background: rgba(59,130,246,.08);
+      border: 1px solid rgba(59,130,246,.2);
+      padding: 5px 12px;
+      border-radius: 3px;
+      font-size: 11px;
+      color: var(--gold-lt);
+      letter-spacing: .05em;
+    }
+
+    /* ── STAR Sections ──────────────────────────────────────── */
+    .star-block {
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      gap: 48px;
+    }
+    .star-label {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .star-num {
+      font-family: var(--font-display);
+      font-size: 13px;
+      color: var(--gold);
+      letter-spacing: .12em;
+    }
+    .star-name {
+      font-family: var(--font-display);
+      font-size: 26px;
+      color: var(--white);
+    }
+    .star-tagline {
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: .06em;
+      margin-top: 8px;
+      line-height: 1.6;
+    }
+    .star-body { color: #BBBBB8; line-height: 1.9; }
+    .star-body p + p { margin-top: 14px; }
+    .star-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 16px;
+    }
+    .star-list li {
+      font-size: 13.5px;
+      color: #9E9E9B;
+      padding-left: 18px;
+      position: relative;
+      line-height: 1.75;
+    }
+    .star-list li::before {
+      content: '—';
+      position: absolute;
+      left: 0;
+      color: var(--gold);
+      font-size: 11px;
+      top: 2px;
+    }
+
+    .star-section + .star-section {
+      margin-top: 64px;
+      padding-top: 64px;
+      border-top: 1px solid var(--border);
+    }
+
+    /* ── Result stat strip ──────────────────────────────────── */
+    .result-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 24px;
+      margin-top: 28px;
+    }
+    .result-stat {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--gold);
+      border-radius: var(--radius);
+      padding: 20px 22px;
+    }
+    .result-stat-num {
+      font-family: var(--font-display);
+      font-size: 22px;
+      color: var(--gold);
+      margin-bottom: 4px;
+    }
+    .result-stat-label {
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      line-height: 1.5;
+    }
+
+    /* ── Gallery (placeholders for user images) ─────────────── */
+    .gallery-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 20px;
+    }
+    .gallery-item {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .gallery-placeholder {
+      aspect-ratio: 16 / 10;
+      background:
+        linear-gradient(135deg, rgba(86,204,255,.06) 25%, transparent 25%) -10px 0/ 20px 20px,
+        linear-gradient(225deg, rgba(86,204,255,.06) 25%, transparent 25%) -10px 0/ 20px 20px,
+        var(--surface);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted);
+      font-size: 11px;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      text-align: center;
+      padding: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .gallery-img {
+      width: 100%;
+      aspect-ratio: 16 / 10;
+      object-fit: cover;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+    }
+    .gallery-link {
+      display: block;
+      border: none;
+      margin: 0;
+      padding: 0;
+      background: transparent;
+      cursor: pointer;
+      width: 100%;
+      text-align: left;
+    }
+    .gallery-link:focus-visible {
+      outline: 2px solid var(--gold);
+      outline-offset: 4px;
+    }
+    .lightbox-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(10, 10, 10, 0.92);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .2s ease;
+      z-index: 250;
+    }
+    .lightbox-overlay.visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .lightbox-content {
+      position: relative;
+      width: min(100%, 1080px);
+      max-height: calc(100vh - 80px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+    }
+    .lightbox-img {
+      width: 100%;
+      max-height: calc(100vh - 180px);
+      object-fit: contain;
+      border-radius: var(--radius);
+      box-shadow: 0 30px 70px rgba(0, 0, 0, 0.45);
+      background: var(--surface);
+    }
+    .lightbox-caption {
+      color: #CCCCCC;
+      font-size: 13px;
+      line-height: 1.6;
+      text-align: center;
+      max-width: 100%;
+    }
+    .lightbox-close,
+    .lightbox-nav {
+      position: absolute;
+      border: none;
+      background: rgba(8, 8, 8, 0.78);
+      color: var(--white);
+      width: 42px;
+      height: 42px;
+      border-radius: 999px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background .2s ease;
+    }
+    .lightbox-close:hover,
+    .lightbox-nav:hover {
+      background: rgba(255, 255, 255, 0.14);
+    }
+    .lightbox-close {
+      top: 12px;
+      right: 12px;
+    }
+    .lightbox-nav {
+      top: 50%;
+      transform: translateY(-50%);
+      width: 46px;
+      height: 46px;
+    }
+    .lightbox-prev { left: 12px; }
+    .lightbox-next { right: 12px; }
+    @media (max-width: 640px) {
+      .lightbox-nav { display: none; }
+      .lightbox-img { max-height: calc(100vh - 140px); }
+    }
+    .gallery-caption {
+      padding: 14px 18px;
+      font-size: 12px;
+      color: #9E9E9B;
+      line-height: 1.6;
+    }
+
+    /* ── Footer ─────────────────────────────────────────────── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 32px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: .08em;
+    }
+    footer span { color: var(--gold); }
+
+    /* ── Scroll animations ──────────────────────────────────── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(22px);
+      transition: opacity .65s ease, transform .65s ease;
+    }
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ── Responsive ─────────────────────────────────────────── */
+    @media (max-width: 768px) {
+      nav { padding: 0 20px; }
+      .nav-links { gap: 18px; }
+      .container { padding: 0 20px; }
+      .star-block { grid-template-columns: 1fr; gap: 16px; }
+      .meta-row { gap: 20px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .reveal { opacity: 1; transform: none; transition: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <div class="nav-logo">Ryan McHenry</div>
+    <ul class="nav-links">
+      <li><a href="index.html#home">Home</a></li>
+      <li><a href="index.html#projects">Projects</a></li>
+      <li><a href="index.html#contact">Contact</a></li>
+    </ul>
+  </nav>
+
+  <!-- HERO -->
+  <section id="hero">
+    <div class="container">
+      <div class="project-eyebrow-row">
+        <span class="eyebrow">Featured Project</span>
+        <a href="index.html#projects" class="back-link">← Back to Projects</a>
+      </div>
+      <h1 class="hero-title">Triple Boot <em>Setup</em></h1>
+      <p class="hero-sub">
+        Configuring a single physical machine to natively run Windows 11, MacOS Tahoe, and CachyOS managing disk partitioning, bootloader configuration, and hardware compatibility across three fundamentally different operating systems.
+      </p>
+      <div class="meta-row reveal">
+        <div class="meta-item">
+          <div class="meta-label">Timeline</div>
+          <div class="meta-value">Nov 2025 – Dec 2025</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">Role</div>
+          <div class="meta-value">System Configurator</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">Operating Systems</div>
+          <div class="meta-value">Windows 11 · MacOS Tahoe · CachyOS</div>
+        </div>
+      </div>
+      <div class="tech-tags reveal">
+        <span class="tech-tag">Windows 11</span>
+        <span class="tech-tag">MacOS Tahoe</span>
+        <span class="tech-tag">CachyOS / Arch Linux</span>
+        <span class="tech-tag">OpenCore Bootloader</span>
+        <span class="tech-tag">GRUB</span>
+        <span class="tech-tag">UEFI / BIOS Config</span>
+        <span class="tech-tag">Disk Partitioning</span>
+        <span class="tech-tag">GPT</span>
+      </div>
+    </div>
+  </section>
+
+  <section id="gallery">
+    <div class="container">
+      <span class="eyebrow">Documentation</span>
+      <h2 class="section-title">Project <em>Gallery</em></h2>
+      <p style="color: #AAAAAA; margin-bottom: 32px;">Click the image for a closer look!</p>
+      <div class="gallery-grid reveal">
+        <div class="gallery-item">
+          <button class="gallery-link" type="button" data-index="0">
+            <img class="gallery-img" src="I:\My Drive\10) Website\Pictures\Triple Boot Project\windows 11 running.png" alt="Windows 11 running screenshot" />
+          </button>
+          <div class="gallery-caption">Windows 11 installation on its dedicated partition.</div>
+        </div>
+
+        <div class="gallery-item">
+          <button class="gallery-link" type="button" data-index="1">
+            <img class="gallery-img" src="I:\My Drive\10) Website\Pictures\Triple Boot Project\macOS Tahoe Running.png" alt="macOS Tahoe Running screenshot" />
+          </button>
+          <div class="gallery-caption">MacOS Tahoe booted natively on the build.</div>
+        </div>
+        <div class="gallery-item">
+          <button class="gallery-link" type="button" data-index="2">
+            <img class="gallery-img" src="I:\My Drive\10) Website\Pictures\Triple Boot Project\cachyos linux running.png" alt="CachyOS running screenshot" />
+          </button>
+          <div class="gallery-caption">CachyOS running post-installation.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STAR -->
+  <section id="star">
+    <div class="container">
+
+      <!-- SITUATION -->
+      <div class="star-section reveal">
+        <div class="star-block">
+          <div class="star-label">
+            <span class="star-name">The starting point</span>
+            
+          </div>
+          <div class="star-body">
+            <p>
+              I wanted to deepen my understanding of cross-platform system administration beyond working inside virtual machines. Each operating system handles boot management, partitioning, and hardware drivers differently, and I felt that gap in hands-on, bare-metal experience was holding back my low-level system configuration skills.
+            </p>
+            <p>
+              Rather than running these environments in separate VMs, I set out to build a single physical machine capable of natively booting three operating systems with fundamentally incompatible boot architectures: Windows 11 (UEFI/NTFS), macOS Tahoe (APFS, requiring an unsupported mac build since the hardware wasn't Apple silicon or officially supported), and CachyOS, a performance-focused Arch Linux distribution (ext4/Btrfs, GRUB).
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- TASK -->
+      <div class="star-section reveal">
+        <div class="star-block">
+          <div class="star-label">
+            <span class="star-name">What needed to happen</span>
+            
+          </div>
+          <div class="star-body">
+            <p>
+              My goal was to design and implement a stable, reliable triple-boot environment on one machine, where I could cleanly select and load any of the three operating systems at startup without data loss, boot conflicts, or hardware instability.
+            </p>
+            <ul class="star-list">
+              <li>Plan a disk partitioning scheme that safely isolated three different filesystems (NTFS, APFS, ext4/Btrfs) on shared physical storage.</li>
+              <li>Configure and tune the OpenCore bootloader to allow an unsupported build of macOS Tahoe to boot natively and recognize core hardware.</li>
+              <li>Set up GRUB and Windows Boot Manager to coexist without overwriting one another during installation.</li>
+              <li>Identify and resolve hardware compatibility issues including GPU drivers, audio, and networking across all three OS environments.</li>
+              <li>Establish a clean boot menu allowing reliable OS selection at startup.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- ACTION -->
+      <div class="star-section reveal">
+        <div class="star-block">
+          <div class="star-label">
+            <span class="star-name">How I executed it</span>
+            
+          </div>
+          <div class="star-body">
+            <p>
+              I started by backing up existing data and mapping out a partition layout, allocating dedicated GPT partitions for Windows 11, macOS Tahoe, and CachyOS, along with a separate EFI System Partition to manage bootloader files for all three.
+            </p>
+            <ul class="star-list">
+              <li>Installed Windows 11 first to let it establish the base UEFI boot environment, then partitioned and formatted additional space for macOS and Linux without disturbing the existing Windows installation.</li>
+              <li>Built and configured a custom OpenCore EFI for macOS Tahoe, generating a tailored config.plist, mapping ACPI tables, and selecting kexts to match the host hardware so macOS would boot and recognize key components.</li>
+              <li>Installed CachyOS, intentionally placing its bootloader (GRUB/systemd-boot) on its own partition to avoid overwriting the Windows or OpenCore boot entries.</li>
+              <li>Worked through BIOS/UEFI firmware settings adjusting Secure Boot, CSM, and boot order to ensure each OS's bootloader was recognized and could hand off control cleanly.</li>
+              <li>Diagnosed and resolved hardware compatibility issues OS by OS, including GPU acceleration and audio/networking driver conflicts on the build, and driver/kernel module issues on CachyOS.</li>
+              <li>Tested boot stability repeatedly across reboots and OS switches, refining the OpenCore config and GRUB entries to eliminate intermittent boot failures.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- RESULT -->
+      <div class="star-section reveal">
+        <div class="star-block">
+          <div class="star-label">
+            
+            <span class="star-name">The outcome</span>
+          </div>
+          <div class="star-body">
+            <p>
+              The result was a fully functional, stable triple-boot system running Windows 11, macOS Tahoe, and CachyOS on a single machine, with a clean boot menu allowing reliable selection between all three operating systems on every startup.
+            </p>
+            <p>
+              This project sharpened my understanding of boot architecture, partition management, and OS-level hardware compatibility well beyond what virtualized environments alone could teach me, skills that translate directly to system administration, IT support, and troubleshooting roles where bare-metal configuration and diagnostics matter.
+            </p>
+            <div class="result-stats">
+              <div class="result-stat">
+                <div class="result-stat-num">3</div>
+                <div class="result-stat-label">Operating Systems on One Machine</div>
+              </div>
+              <div class="result-stat">
+                <div class="result-stat-num">1</div>
+                <div class="result-stat-label">Shared Boot Menu (OpenCore / GRUB)</div>
+              </div>
+              <div class="result-stat">
+                <div class="result-stat-num">0</div>
+                <div class="result-stat-label">Data Loss Incidents</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <div class="lightbox-overlay" id="lightbox" aria-hidden="true" tabindex="-1">
+    <div class="lightbox-content" role="dialog" aria-modal="true">
+      <button class="lightbox-close" id="lightboxClose" aria-label="Close">×</button>
+      <button class="lightbox-nav lightbox-prev" id="lightboxPrev" aria-label="Previous">‹</button>
+      <button class="lightbox-nav lightbox-next" id="lightboxNext" aria-label="Next">›</button>
+      <img class="lightbox-img" id="lightboxImage" src="" alt="" />
+      <div class="lightbox-caption" id="lightboxCaption"></div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer>
+    <div>© 2026 <span>Ryan McHenry</span>. All rights reserved.</div>
+    <div>Cybersecurity &amp; IT · <span>Cal State San Bernardino</span></div>
+  </footer>
+
+  <script>
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          e.target.classList.add('visible');
+          observer.unobserve(e.target);
+        }
+      });
+    }, { threshold: 0.1 });
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+    const galleryLinks = Array.from(document.querySelectorAll('.gallery-link'));
+    const lightbox = document.getElementById('lightbox');
+    const lightboxImage = document.getElementById('lightboxImage');
+    const lightboxCaption = document.getElementById('lightboxCaption');
+    const lightboxClose = document.getElementById('lightboxClose');
+    const lightboxPrev = document.getElementById('lightboxPrev');
+    const lightboxNext = document.getElementById('lightboxNext');
+    let activeIndex = 0;
+
+    const galleryItems = galleryLinks.map((button) => {
+      const item = button.closest('.gallery-item');
+      const image = button.querySelector('img');
+      const caption = item.querySelector('.gallery-caption')?.textContent || '';
+      return {
+        src: image.src,
+        alt: image.alt,
+        caption,
+      };
+    });
+
+    function updateLightbox(index) {
+      activeIndex = (index + galleryItems.length) % galleryItems.length;
+      const item = galleryItems[activeIndex];
+      lightboxImage.src = item.src;
+      lightboxImage.alt = item.alt;
+      lightboxCaption.textContent = item.caption;
+    }
+
+    function openLightbox(index) {
+      updateLightbox(index);
+      lightbox.classList.add('visible');
+      lightbox.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+      lightboxClose.focus();
+    }
+
+    function closeLightbox() {
+      lightbox.classList.remove('visible');
+      lightbox.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+    }
+
+    galleryLinks.forEach((button, index) => {
+      button.addEventListener('click', () => openLightbox(index));
+    });
+
+    lightboxClose.addEventListener('click', closeLightbox);
+    lightboxPrev.addEventListener('click', () => openLightbox(activeIndex - 1));
+    lightboxNext.addEventListener('click', () => openLightbox(activeIndex + 1));
+
+    lightbox.addEventListener('click', (event) => {
+      if (event.target === lightbox) {
+        closeLightbox();
+      }
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (!lightbox.classList.contains('visible')) return;
+      if (event.key === 'Escape') closeLightbox();
+      if (event.key === 'ArrowLeft') openLightbox(activeIndex - 1);
+      if (event.key === 'ArrowRight') openLightbox(activeIndex + 1);
+    });
+  </script>
+
+</body>
+</html>
