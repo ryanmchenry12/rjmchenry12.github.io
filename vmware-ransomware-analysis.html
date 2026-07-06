@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VMware Ransomware Analysis · Ryan McHenry</title>
+  <style>
+    /* ── Tokens ─────────────────────────────────────────────── */
+    :root {
+      --black:   #0A0A0A;
+      --surface: #111111;
+      --card:    #161616;
+      --border:  #222222;
+      --gold:    #56ccff;
+      --gold-lt: #93C5FD;
+      --gold-dk: #1e738a;
+      --white:   #F0EFEB;
+      --muted:   #888888;
+      --font-display: 'Georgia', 'Times New Roman', serif;
+      --font-body:    'Helvetica Neue', Helvetica, Arial, sans-serif;
+      --nav-h: 64px;
+      --max-w: 900px;
+      --radius: 4px;
+    }
+
+    /* ── Reset ──────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--black);
+      color: var(--white);
+      font-family: var(--font-body);
+      font-size: 15px;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--gold); text-decoration: none; transition: color .2s; }
+    a:hover { color: var(--gold-lt); }
+    img { display: block; max-width: 100%; border-radius: var(--radius); }
+
+    /* ── Nav ────────────────────────────────────────────────── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: var(--nav-h);
+      background: rgba(10,10,10,.93);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 40px;
+    }
+    .nav-logo {
+      font-family: var(--font-display);
+      font-size: 18px;
+      letter-spacing: .06em;
+      color: var(--gold);
+    }
+    .nav-back {
+      font-size: 11px;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .nav-back:hover { color: var(--gold); }
+
+    /* ── Layout helpers ─────────────────────────────────────── */
+    .container {
+      max-width: var(--max-w);
+      margin: 0 auto;
+      padding: 0 40px;
+    }
+    section { padding: 72px 0; }
+    section + section { border-top: 1px solid var(--border); }
+
+    .eyebrow {
+      display: block;
+      font-size: 10px;
+      letter-spacing: .22em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 10px;
+    }
+    .section-title {
+      font-family: var(--font-display);
+      font-size: clamp(24px, 3.4vw, 32px);
+      font-weight: normal;
+      color: var(--white);
+      margin-bottom: 28px;
+      line-height: 1.2;
+    }
+    .section-title em { font-style: italic; color: var(--gold); }
+
+    .divider {
+      width: 48px;
+      height: 1px;
+      background: var(--gold);
+      margin-bottom: 32px;
+    }
+
+    /* ── Header ─────────────────────────────────────────────── */
+    #header {
+      padding-top: calc(var(--nav-h) + 64px);
+      padding-bottom: 56px;
+    }
+    .header-pre {
+      font-size: 11px;
+      letter-spacing: .24em;
+      text-transform: uppercase;
+      color: var(--gold);
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 22px;
+    }
+    .header-pre::before {
+      content: '';
+      display: inline-block;
+      width: 32px;
+      height: 1px;
+      background: var(--gold);
+    }
+    .header-title {
+      font-family: var(--font-display);
+      font-size: clamp(32px, 5vw, 48px);
+      font-weight: normal;
+      line-height: 1.15;
+      color: var(--white);
+      margin-bottom: 18px;
+    }
+    .header-meta {
+      font-size: 11px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 24px;
+    }
+    .header-meta span { color: var(--gold); }
+    .header-summary {
+      font-size: 15px;
+      color: #BBBBB8;
+      max-width: 720px;
+      line-height: 1.85;
+      margin-bottom: 28px;
+    }
+    .tech-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+    .tech-tag {
+      background: rgba(59,130,246,.08);
+      border: 1px solid rgba(59,130,246,.2);
+      padding: 5px 12px;
+      border-radius: 3px;
+      font-size: 11px;
+      color: var(--gold-lt);
+      letter-spacing: .05em;
+    }
+
+    /* ── STAR blocks ────────────────────────────────────────── */
+    .star-block { max-width: 760px; }
+    .star-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-family: var(--font-display);
+      font-size: 13px;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 16px;
+    }
+    .star-label .num {
+      width: 26px;
+      height: 26px;
+      border: 1px solid var(--gold-dk);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-body);
+      font-size: 11px;
+      color: var(--gold);
+    }
+    .star-heading {
+      font-family: var(--font-display);
+      font-size: 22px;
+      color: var(--white);
+      margin-bottom: 14px;
+    }
+    .star-text { color: #BBBBB8; line-height: 1.9; }
+    .star-text p + p { margin-top: 14px; }
+    .star-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 16px;
+    }
+    .star-list li {
+      font-size: 13.5px;
+      color: #9E9E9B;
+      padding-left: 18px;
+      position: relative;
+      line-height: 1.75;
+    }
+    .star-list li::before {
+      content: '—';
+      position: absolute;
+      left: 0;
+      color: var(--gold);
+      font-size: 11px;
+      top: 2px;
+    }
+
+    /* ── Callout / Key Findings ─────────────────────────────── */
+    .callout {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--gold);
+      border-radius: var(--radius);
+      padding: 28px 30px;
+      margin-top: 36px;
+    }
+    .callout-title {
+      font-family: var(--font-display);
+      font-size: 16px;
+      color: var(--white);
+      margin-bottom: 10px;
+    }
+    .callout-text { font-size: 13.5px; color: #BBBBB8; line-height: 1.85; }
+
+    /* ── IOC / mitigation grid ──────────────────────────────── */
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+    .info-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px 26px;
+    }
+    .info-card-title {
+      font-size: 10px;
+      letter-spacing: .2em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 14px;
+    }
+
+    /* ── Footer nav ─────────────────────────────────────────── */
+    .footer-nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .footer-nav .btn {
+      display: inline-block;
+      padding: 13px 30px;
+      font-size: 11px;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+      border-radius: var(--radius);
+      transition: all .25s;
+      border: 1px solid var(--gold);
+      color: var(--gold);
+    }
+    .footer-nav .btn:hover { background: var(--gold); color: var(--black); }
+
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 32px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: .08em;
+    }
+    footer span { color: var(--gold); }
+
+    @media (max-width: 768px) {
+      nav { padding: 0 20px; }
+      .container { padding: 0 20px; }
+      .two-col { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <div class="nav-logo">Ryan McHenry</div>
+    <a href="index.html#projects" class="nav-back">← Back to Projects</a>
+  </nav>
+
+  <!-- HEADER -->
+  <section id="header">
+    <div class="container">
+      <p class="header-pre">Project Case Study</p>
+      <h1 class="header-title">VMware Ransomware Analysis</h1>
+      <div class="header-meta">Jun 2025 – Jul 2025 &nbsp;·&nbsp; Role: <span>Solo Analyst / Report Author</span></div>
+      <p class="header-summary">
+        An isolated sandbox investigation into ransomware behavior, built to safely detonate and observe live malware samples without risking host or network exposure. The analysis traced infection vectors, mapped Indicators of Compromise, and concluded that the samples examined were most commonly distributed through pirated and cracked software downloads.
+      </p>
+      <div class="tech-tags">
+        <span class="tech-tag">VMware Workstation</span>
+        <span class="tech-tag">Malware Analysis</span>
+        <span class="tech-tag">IOC Detection</span>
+        <span class="tech-tag">Registry Analysis</span>
+        <span class="tech-tag">Sandboxing</span>
+        <span class="tech-tag">Network Isolation</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- SITUATION -->
+  <section id="Objective">
+    <div class="container">
+      <div class="star-block">
+        
+        <h2 class="star-heading">A growing threat, observed safely</h2>
+        <div class="star-text">
+          <p>
+            Ransomware remains one of the most disruptive threats facing both individuals and organizations, capable of encrypting critical files and demanding payment for their release. Much of the publicly available information on ransomware behavior is high-level or theoretical, and I wanted hands-on, first-party evidence of how a real sample actually behaves on a live system without putting any production environment, personal machine, or network at risk.
+          </p>
+          <p>
+            To do this safely, I needed a fully contained environment where a live ransomware sample could be executed, observed, and reverted with zero chance of escape or cross-contamination.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TASK -->
+  <section id="task">
+    <div class="container">
+      <div class="star-block">
+        
+        <h2 class="star-heading">Environment & Tools</h2>
+        <div class="star-text">
+          <p>
+            I set out to design and execute a controlled malware analysis exercise with four core goals:
+          </p>
+          <ul class="star-list">
+            <li>Build an isolated VMware sandbox capable of safely detonating live ransomware with no risk to the host machine or external network.</li>
+            <li>Identify Indicators of Compromise (IOCs) by comparing system and registry states before and after infection.</li>
+            <li>Document the observed encryption behavior, including file targeting patterns and system changes made by the malware.</li>
+            <li>Trace the likely infection vector and determine how a typical end user would realistically encounter this threat.</li>
+          </ul>
+          <p>
+            The end deliverable was a structured report suitable for a detection and mitigation audience — something that could inform real defensive controls rather than just describe what happened.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ACTION -->
+  <section id="action">
+    <div class="container">
+      <div class="star-block">
+        
+        <h2 class="star-heading">Building the sandbox and running the analysis</h2>
+        <div class="star-text">
+          <p>
+            I provisioned an isolated virtual machine in VMware Workstation Pro, configured with host-only networking and no shared folders or clipboard access, ensuring the sample had no path out of the guest environment. Before introducing any malware, I took a clean snapshot of the system to serve as a baseline for comparison.
+          </p>
+          <p>
+            I then sourced a live ransomware sample through the kind of channel a real victim would commonly encounter it bundled within a cracked or "pirated" software installer obtained from an unofficial download source. This was an intentional part of the exercise, since the delivery method itself was as important to document as the payload.
+          </p>
+          <p>
+            After detonating the sample inside the isolated VM, I monitored the system in real time and then performed a full post-infection comparison against the clean baseline, focusing on:
+          </p>
+          <ul class="star-list">
+            <li>Registry key creation, modification, and persistence mechanisms introduced by the malware.</li>
+            <li>File system changes, including newly encrypted files, renamed extensions, and dropped ransom notes.</li>
+            <li>Running processes and any spawned child processes used to carry out encryption.</li>
+            <li>Startup and autorun entries used to establish persistence across reboots.</li>
+          </ul>
+          <p>
+            Every change was logged and cross-referenced against the clean snapshot to isolate exactly what the malware touched, then organized into a formal write-up covering the infection chain from initial delivery through encryption and persistence.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- RESULT -->
+  <section id="result">
+    <div class="container">
+      <div class="star-block">
+        
+        <h2 class="star-heading">Pirated software as the dominant infection vector</h2>
+        <div class="star-text">
+          <p>
+            The analysis successfully produced a complete, evidence-backed picture of the sample's behavior, from delivery to persistence to encryption. The clearest and most consistent finding across the exercise was that the ransomware was distributed through pirated and "cracked" software installers and keygens sourced from unofficial, untrusted distribution sites rather than through more commonly discussed vectors like phishing emails or exploit kits.
+          </p>
+          <p>
+            This matters because it points to a human decision point choosing to download unlicensed software as the actual root cause of infection in this case, rather than a sophisticated technical exploit. That distinction has direct implications for how the threat should be communicated and defended against.
+          </p>
+        </div>
+
+        <div class="callout">
+          <div class="callout-title">Key Finding</div>
+          <div class="callout-text">
+            The ransomware sample analyzed was bundled inside a pirated software installer. The infection chain depended entirely on the user voluntarily downloading and running an untrusted executable — making user education and software-sourcing policy as critical a control as any technical safeguard.
+          </div>
+        </div>
+      </div>
+
+      <div class="two-col" style="margin-top: 36px;">
+        <div class="info-card">
+          <div class="info-card-title">Indicators of Compromise</div>
+          <ul class="star-list">
+            <li>New autorun / startup registry entries for persistence.</li>
+            <li>Mass file renaming with a non-standard encrypted extension.</li>
+            <li>Ransom note files dropped in user-accessible directories.</li>
+            <li>Unsigned process spawned from a cracked-software installer path.</li>
+          </ul>
+        </div>
+        <div class="info-card">
+          <div class="info-card-title">Detection &amp; Mitigation Strategies</div>
+          <ul class="star-list">
+            <li>Block or restrict execution of unsigned binaries from common download directories.</li>
+            <li>Enforce application allow-listing to prevent unauthorized installers from running.</li>
+            <li>Monitor for mass file-extension changes as an early ransomware indicator.</li>
+            <li>User awareness training on the risks of pirated and cracked software.</li>
+            <li>Maintain offline, versioned backups to enable recovery without paying a ransom.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER NAV -->
+  <section id="footer-nav">
+    <div class="container footer-nav">
+      <a href="index.html#projects" class="btn">← Back to Projects</a>
+      <a href="mailto:rjmchenry12@gmail.com" class="btn">Get in Touch</a>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div>© 2026 <span>Ryan McHenry</span>. All rights reserved.</div>
+    <div>Cybersecurity &amp; IT · <span>Cal State San Bernardino</span></div>
+  </footer>
+
+</body>
+</html>
